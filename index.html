@@ -1,10 +1,472 @@
-<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Movixa Build Center</title>
-<style>body{font-family:Arial;max-width:760px;margin:30px auto;padding:16px;background:#f4f6f8}.card{background:#fff;padding:20px;border-radius:16px}textarea{width:100%;height:240px}button{padding:12px 20px;margin-top:12px}</style>
-<div class="card"><h1>Movixa App Maker</h1><h3>V8 Build Center</h3>
-<textarea id="p">{"name":"My Movixa App","components":[{"type":"text","text":"Hello Movixa"},{"type":"button","text":"Start"}]}</textarea><br>
-<select id="f"><option value="apk">APK</option><option value="aab">AAB</option></select><button onclick="go()">Build</button><p id="s"></p><div id="d"></div></div>
+<!doctype html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Movixa App Maker</title>
+
+<style>
+body{
+  font-family:Arial;
+  margin:0;
+  background:#f4f6f8;
+}
+.container{
+  max-width:900px;
+  margin:auto;
+  padding:20px;
+}
+.card{
+  background:white;
+  padding:20px;
+  border-radius:18px;
+  margin-bottom:18px;
+}
+h1{margin-top:0}
+input,select{
+  width:100%;
+  box-sizing:border-box;
+  padding:13px;
+  margin:7px 0;
+  border:1px solid #ccc;
+  border-radius:8px;
+  font-size:16px;
+}
+button{
+  padding:12px 18px;
+  margin:5px;
+  border:0;
+  border-radius:8px;
+  font-size:16px;
+  cursor:pointer;
+}
+.add{
+  background:#222;
+  color:white;
+}
+.build{
+  background:#0b57d0;
+  color:white;
+  width:100%;
+  margin-top:15px;
+}
+.component{
+  border:1px solid #ddd;
+  padding:12px;
+  border-radius:10px;
+  margin-top:10px;
+}
+.preview{
+  background:#fafafa;
+  border:1px solid #ddd;
+  min-height:180px;
+  padding:15px;
+  border-radius:10px;
+}
+.preview button{
+  background:#ddd;
+}
+.delete{
+  background:#eee;
+  float:right;
+}
+textarea{
+  width:100%;
+  height:160px;
+  box-sizing:border-box;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+<h1>Movixa App Maker</h1>
+<p>अपना ऐप बिना JSON लिखे बनाइए</p>
+
+<label>App Name</label>
+<input id="appName" value="Vidora">
+</div>
+
+
+<div class="card">
+
+<h2>Add Component</h2>
+
+<button class="add" onclick="addComponent('text')">
++ Text
+</button>
+
+<button class="add" onclick="addComponent('button')">
++ Button
+</button>
+
+<button class="add" onclick="addComponent('image')">
++ Image
+</button>
+
+<button class="add" onclick="addComponent('video')">
++ Video
+</button>
+
+<button class="add" onclick="addComponent('webview')">
++ WebView
+</button>
+
+<div id="components"></div>
+
+</div>
+
+
+<div class="card">
+
+<h2>Live Preview</h2>
+
+<div id="preview" class="preview">
+App Preview
+</div>
+
+</div>
+
+
+<div class="card">
+
+<h2>Build App</h2>
+
+<select id="format">
+<option value="apk">APK</option>
+<option value="aab">AAB</option>
+</select>
+
+<button class="build" onclick="buildApp()">
+Build App
+</button>
+
+<p id="status"></p>
+<div id="download"></div>
+
+</div>
+
+
+<div class="card">
+
+<details>
+<summary>Advanced JSON</summary>
+<textarea id="json"></textarea>
+</details>
+
+</div>
+
+</div>
+
+
 <script>
-async function go(){let p;try{p=JSON.parse(document.getElementById('p').value)}catch(e){s.textContent='Invalid JSON';return}
-let r=await fetch('/api/build',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({format:f.value,project:p})}),j=await r.json();if(!r.ok){s.textContent=j.error;return}poll(j.id)}
-async function poll(id){let j=await (await fetch('/api/build/'+id)).json();s.textContent='Status: '+j.status+(j.error?' — '+j.error:'');if(j.status==='completed'){d.innerHTML='<a href="'+j.download+'">Download '+j.format.toUpperCase()+'</a>';return}if(j.status==='failed')return;setTimeout(()=>poll(id),2000)}
+
+let components=[];
+
+
+function addComponent(type){
+
+let c={
+ type:type,
+ text:
+ type==="text" ? "Hello Vidora" :
+ type==="button" ? "START" :
+ type==="image" ? "" :
+ type==="video" ? "" :
+ ""
+};
+
+components.push(c);
+
+render();
+
+}
+
+
+function removeComponent(index){
+
+components.splice(index,1);
+
+render();
+
+}
+
+
+function updateComponent(index,key,value){
+
+components[index][key]=value;
+
+updatePreview();
+
+updateJSON();
+
+}
+
+
+function render(){
+
+let box=document.getElementById("components");
+
+box.innerHTML="";
+
+components.forEach((c,i)=>{
+
+let div=document.createElement("div");
+
+div.className="component";
+
+div.innerHTML=`
+
+<b>${c.type.toUpperCase()}</b>
+
+<button class="delete"
+onclick="removeComponent(${i})">
+Delete
+</button>
+
+<br><br>
+
+<label>Text / URL</label>
+
+<input
+value="${escapeHtml(c.text || "")}"
+oninput="updateComponent(${i},'text',this.value)"
+>
+
+`;
+
+box.appendChild(div);
+
+});
+
+updatePreview();
+
+updateJSON();
+
+}
+
+
+function updatePreview(){
+
+let preview=document.getElementById("preview");
+
+preview.innerHTML="";
+
+components.forEach(c=>{
+
+if(c.type==="text"){
+
+let p=document.createElement("p");
+
+p.textContent=c.text || "Text";
+
+p.style.fontSize="20px";
+
+preview.appendChild(p);
+
+}
+
+else if(c.type==="button"){
+
+let b=document.createElement("button");
+
+b.textContent=c.text || "Button";
+
+preview.appendChild(b);
+
+}
+
+else if(c.type==="image"){
+
+let p=document.createElement("p");
+
+p.textContent="Image";
+
+preview.appendChild(p);
+
+}
+
+else if(c.type==="video"){
+
+let p=document.createElement("p");
+
+p.textContent="Video";
+
+preview.appendChild(p);
+
+}
+
+else if(c.type==="webview"){
+
+let p=document.createElement("p");
+
+p.textContent="WebView";
+
+preview.appendChild(p);
+
+}
+
+});
+
+if(components.length===0){
+
+preview.textContent="App Preview";
+
+}
+
+}
+
+
+function updateJSON(){
+
+let project={
+
+name:document.getElementById("appName").value || "Vidora",
+
+components:components
+
+};
+
+document.getElementById("json").value=
+
+JSON.stringify(project,null,2);
+
+}
+
+
+document.getElementById("appName").addEventListener(
+"input",
+updateJSON
+);
+
+
+async function buildApp(){
+
+let project={
+
+name:document.getElementById("appName").value || "Vidora",
+
+components:components
+
+};
+
+let status=document.getElementById("status");
+
+let download=document.getElementById("download");
+
+status.textContent="Building...";
+
+download.innerHTML="";
+
+try{
+
+let r=await fetch("/api/build",{
+
+method:"POST",
+
+headers:{
+"Content-Type":"application/json"
+},
+
+body:JSON.stringify({
+
+format:document.getElementById("format").value,
+
+project:project
+
+})
+
+});
+
+let j=await r.json();
+
+if(!r.ok){
+
+status.textContent=j.error || "Build failed";
+
+return;
+
+}
+
+poll(j.id);
+
+}
+
+catch(e){
+
+status.textContent="Build request failed";
+
+}
+
+}
+
+
+async function poll(id){
+
+try{
+
+let r=await fetch("/api/build/"+id);
+
+let j=await r.json();
+
+document.getElementById("status").textContent=
+
+"Status: "+j.status+
+
+(j.error ? " — "+j.error : "");
+
+if(j.status==="completed"){
+
+document.getElementById("download").innerHTML=
+
+'<a href="'+j.download+'">Download '+
+
+j.format.toUpperCase()+
+
+'</a>';
+
+return;
+
+}
+
+if(j.status==="failed") return;
+
+setTimeout(()=>poll(id),2000);
+
+}
+
+catch(e){
+
+document.getElementById("status").textContent=
+
+"Build status error";
+
+}
+
+}
+
+
+function escapeHtml(s){
+
+return String(s)
+
+.replace(/&/g,"&amp;")
+
+.replace(/"/g,"&quot;")
+
+.replace(/</g,"&lt;")
+
+.replace(/>/g,"&gt;");
+
+}
+
+
+render();
+
 </script>
+
+</body>
+</html>
