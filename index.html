@@ -1,0 +1,10 @@
+<!doctype html><meta name="viewport" content="width=device-width,initial-scale=1"><title>Movixa Build Center</title>
+<style>body{font-family:Arial;max-width:760px;margin:30px auto;padding:16px;background:#f4f6f8}.card{background:#fff;padding:20px;border-radius:16px}textarea{width:100%;height:240px}button{padding:12px 20px;margin-top:12px}</style>
+<div class="card"><h1>Movixa App Maker</h1><h3>V8 Build Center</h3>
+<textarea id="p">{"name":"My Movixa App","components":[{"type":"text","text":"Hello Movixa"},{"type":"button","text":"Start"}]}</textarea><br>
+<select id="f"><option value="apk">APK</option><option value="aab">AAB</option></select><button onclick="go()">Build</button><p id="s"></p><div id="d"></div></div>
+<script>
+async function go(){let p;try{p=JSON.parse(document.getElementById('p').value)}catch(e){s.textContent='Invalid JSON';return}
+let r=await fetch('/api/build',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({format:f.value,project:p})}),j=await r.json();if(!r.ok){s.textContent=j.error;return}poll(j.id)}
+async function poll(id){let j=await (await fetch('/api/build/'+id)).json();s.textContent='Status: '+j.status+(j.error?' — '+j.error:'');if(j.status==='completed'){d.innerHTML='<a href="'+j.download+'">Download '+j.format.toUpperCase()+'</a>';return}if(j.status==='failed')return;setTimeout(()=>poll(id),2000)}
+</script>

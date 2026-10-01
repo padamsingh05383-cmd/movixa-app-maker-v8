@@ -1,0 +1,13 @@
+services:
+  movixa-builder:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      - movixa_jobs:/app/jobs
+      - movixa_artifacts:/app/artifacts
+    restart: unless-stopped
+
+volumes:
+  movixa_jobs:
+  movixa_artifacts
