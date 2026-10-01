@@ -37,7 +37,6 @@ button{
   border:0;
   border-radius:8px;
   font-size:16px;
-  cursor:pointer;
 }
 .add{
   background:#222;
@@ -62,8 +61,19 @@ button{
   padding:15px;
   border-radius:10px;
 }
-.preview button{
-  background:#ddd;
+.preview img{
+  max-width:100%;
+  display:block;
+  margin:10px 0;
+  border-radius:8px;
+}
+.preview video{
+  width:100%;
+  max-height:400px;
+  display:block;
+  margin:10px 0;
+  border-radius:8px;
+  background:#000;
 }
 .delete{
   background:#eee;
@@ -89,7 +99,6 @@ textarea{
 <label>App Name</label>
 <input id="appName" value="Vidora">
 </div>
-
 
 <div class="card">
 
@@ -119,7 +128,6 @@ textarea{
 
 </div>
 
-
 <div class="card">
 
 <h2>Live Preview</h2>
@@ -129,7 +137,6 @@ App Preview
 </div>
 
 </div>
-
 
 <div class="card">
 
@@ -149,7 +156,6 @@ Build App
 
 </div>
 
-
 <div class="card">
 
 <details>
@@ -161,11 +167,9 @@ Build App
 
 </div>
 
-
 <script>
 
 let components=[];
-
 
 function addComponent(type){
 
@@ -174,8 +178,6 @@ let c={
  text:
  type==="text" ? "Hello Vidora" :
  type==="button" ? "START" :
- type==="image" ? "" :
- type==="video" ? "" :
  ""
 };
 
@@ -185,7 +187,6 @@ render();
 
 }
 
-
 function removeComponent(index){
 
 components.splice(index,1);
@@ -194,17 +195,14 @@ render();
 
 }
 
-
 function updateComponent(index,key,value){
 
 components[index][key]=value;
 
 updatePreview();
-
 updateJSON();
 
 }
-
 
 function render(){
 
@@ -218,6 +216,11 @@ let div=document.createElement("div");
 
 div.className="component";
 
+let label =
+c.type==="video" ? "Video URL" :
+c.type==="image" ? "Image URL" :
+"Text / URL";
+
 div.innerHTML=`
 
 <b>${c.type.toUpperCase()}</b>
@@ -229,10 +232,17 @@ Delete
 
 <br><br>
 
-<label>Text / URL</label>
+<label>${label}</label>
 
 <input
 value="${escapeHtml(c.text || "")}"
+placeholder="${
+c.type==="video"
+? "https://example.com/video.mp4"
+: c.type==="image"
+? "https://example.com/image.jpg"
+: ""
+}"
 oninput="updateComponent(${i},'text',this.value)"
 >
 
@@ -243,11 +253,9 @@ box.appendChild(div);
 });
 
 updatePreview();
-
 updateJSON();
 
 }
-
 
 function updatePreview(){
 
@@ -281,31 +289,77 @@ preview.appendChild(b);
 
 else if(c.type==="image"){
 
+if(c.text){
+
+let img=document.createElement("img");
+
+img.src=c.text;
+
+img.alt="Image";
+
+preview.appendChild(img);
+
+}else{
+
 let p=document.createElement("p");
 
-p.textContent="Image";
+p.textContent="Image URL डालें";
 
 preview.appendChild(p);
+
+}
 
 }
 
 else if(c.type==="video"){
 
+if(c.text){
+
+let video=document.createElement("video");
+
+video.src=c.text;
+
+video.controls=true;
+
+video.playsInline=true;
+
+preview.appendChild(video);
+
+}else{
+
 let p=document.createElement("p");
 
-p.textContent="Video";
+p.textContent="Video URL डालें";
 
 preview.appendChild(p);
 
 }
 
+}
+
 else if(c.type==="webview"){
+
+if(c.text){
+
+let iframe=document.createElement("iframe");
+
+iframe.src=c.text;
+
+iframe.style.width="100%";
+iframe.style.height="300px";
+iframe.style.border="0";
+
+preview.appendChild(iframe);
+
+}else{
 
 let p=document.createElement("p");
 
-p.textContent="WebView";
+p.textContent="WebView URL डालें";
 
 preview.appendChild(p);
+
+}
 
 }
 
@@ -318,7 +372,6 @@ preview.textContent="App Preview";
 }
 
 }
-
 
 function updateJSON(){
 
@@ -336,12 +389,10 @@ JSON.stringify(project,null,2);
 
 }
 
-
 document.getElementById("appName").addEventListener(
 "input",
 updateJSON
 );
-
 
 async function buildApp(){
 
@@ -403,7 +454,6 @@ status.textContent="Build request failed";
 
 }
 
-
 async function poll(id){
 
 try{
@@ -448,7 +498,6 @@ document.getElementById("status").textContent=
 
 }
 
-
 function escapeHtml(s){
 
 return String(s)
@@ -462,7 +511,6 @@ return String(s)
 .replace(/>/g,"&gt;");
 
 }
-
 
 render();
 
