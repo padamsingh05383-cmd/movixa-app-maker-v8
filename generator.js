@@ -85,7 +85,7 @@ include(":app")
 `android.useAndroidX=true
 android.nonTransitiveRClass=true
 org.gradle.daemon=false
-org.gradle.jvmargs=-Xmx256m -XX:MaxMetaspaceSize=128m -Dfile.encoding=UTF-8
+org.gradle.jvmargs=-Xmx256m -Dfile.encoding=UTF-8
 `
   );
 
