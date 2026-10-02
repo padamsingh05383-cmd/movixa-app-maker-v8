@@ -1,4 +1,4 @@
- const fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 
 function safe(s) {
@@ -7,19 +7,11 @@ function safe(s) {
     .replace(/^(\d)/, "App$1") || "MovixaApp";
 }
 
-function xml(s) {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 function java(s) {
   return String(s ?? "")
     .replace(/\\/g, "\\\\")
     .replace(/"/g, '\\"')
-    .replace(/\r/g, "\\r")
+    .replace(/\r/g, "")
     .replace(/\n/g, "\\n");
 }
 
@@ -28,126 +20,137 @@ function w(file, content) {
   fs.writeFileSync(file, content);
 }
 
-function getValue(c) {
-  return c.url || c.src || c.value || c.text || "";
-}
-
 function generateAndroidProject(p, d) {
 
-  const n = safe(p.name);
-  const ns = "com.movixa.generated." + n.toLowerCase();
-  const cs = Array.isArray(p.components) ? p.components : [];
+  const appName = safe(p.name);
+  const ns = "com.movixa.generated." + appName.toLowerCase();
+  const components = Array.isArray(p.components) ? p.components : [];
 
-  const views = cs.map((c, i) => {
+  let declarations = "";
+  let setup = "";
 
+  components.forEach((c, i) => {
+
+    const type = String(c.type || "").toLowerCase();
     const id = "movixa_" + i;
 
-    if (c.type === "button") {
-      return `
-        <Button
-            android:id="@+id/${id}"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="${xml(c.text || "Button")}"
-            android:layout_marginBottom="12dp" />`;
-    }
+    const value = String(
+      c.text ??
+      c.url ??
+      c.value ??
+      ""
+    );
 
-    if (c.type === "image") {
-      return `
-        <ImageView
-            android:id="@+id/${id}"
-            android:layout_width="match_parent"
-            android:layout_height="200dp"
-            android:contentDescription="Image"
-            android:scaleType="centerCrop"
-            android:layout_marginBottom="12dp" />`;
-    }
+    if (type === "text") {
 
-    if (c.type === "video") {
-      return `
-        <VideoView
-            android:id="@+id/${id}"
-            android:layout_width="match_parent"
-            android:layout_height="230dp"
-            android:layout_marginBottom="12dp" />`;
-    }
+      declarations += `
+        TextView view${i} = new TextView(this);
+        view${i}.setText("${java(value || "Text")}");
+        view${i}.setTextSize(18);
+        view${i}.setPadding(12, 12, 12, 12);
+        root.addView(view${i});
+`;
 
-    if (c.type === "url" || c.type === "webview") {
-      return `
-        <WebView
-            android:id="@+id/${id}"
-            android:layout_width="match_parent"
-            android:layout_height="350dp"
-            android:layout_marginBottom="12dp" />`;
-    }
+    } else if (type === "button") {
 
-    return `
-        <TextView
-            android:id="@+id/${id}"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="${xml(c.text || "Text")}"
-            android:textSize="18sp"
-            android:padding="12dp"
-            android:layout_marginBottom="8dp" />`;
+      declarations += `
+        Button view${i} = new Button(this);
+        view${i}.setText("${java(value || "Button")}");
+        root.addView(view${i});
 
-  }).join("\n");
-
-  const actions = cs.map((c, i) => {
-
-    const id = "movixa_" + i;
-    const value = getValue(c);
-
-    if (c.type === "button") {
-      const label = java(c.text || "Button");
-
-      return `
-        Button button${i} = findViewById(R.id.${id});
-        button${i}.setOnClickListener(v ->
+        view${i}.setOnClickListener(v -> {
             Toast.makeText(
-                this,
-                "${label} clicked",
+                MainActivity.this,
+                "${java(value || "Button")} clicked",
                 Toast.LENGTH_SHORT
-            ).show()
-        );`;
-    }
+            ).show();
+        });
+`;
 
-    if (c.type === "image" && value) {
-      return `
-        ImageView image${i} = findViewById(R.id.${id});
-        loadImage(image${i}, "${java(value)}");`;
-    }
+    } else if (type === "image") {
 
-    if (c.type === "video" && value) {
-      return `
-        VideoView video${i} = findViewById(R.id.${id});
-        video${i}.setVideoURI(Uri.parse("${java(value)}"));
+      declarations += `
+        ImageView view${i} = new ImageView(this);
+        view${i}.setLayoutParams(
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                350
+            )
+        );
+        view${i}.setScaleType(ImageView.ScaleType.CENTER_CROP);
+        root.addView(view${i});
+
+        loadImage(view${i}, "${java(value)}");
+`;
+
+    } else if (type === "video") {
+
+      declarations += `
+        VideoView view${i} = new VideoView(this);
+
+        LinearLayout.LayoutParams videoParams${i} =
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                500
+            );
+
+        videoParams${i}.setMargins(0, 12, 0, 12);
+        view${i}.setLayoutParams(videoParams${i});
+
+        root.addView(view${i});
 
         MediaController controller${i} =
             new MediaController(this);
 
-        controller${i}.setAnchorView(video${i});
-        video${i}.setMediaController(controller${i});
+        controller${i}.setAnchorView(view${i});
+        view${i}.setMediaController(controller${i});
 
-        video${i}.setOnPreparedListener(mp -> {
+        Uri videoUri${i} =
+            Uri.parse("${java(value)}");
+
+        view${i}.setVideoURI(videoUri${i});
+
+        view${i}.setOnPreparedListener(mp -> {
             mp.setLooping(false);
-        });`;
+            view${i}.requestFocus();
+            view${i}.start();
+        });
+
+        view${i}.setOnErrorListener((mp, what, extra) -> {
+            Toast.makeText(
+                MainActivity.this,
+                "Video play नहीं हो पाया",
+                Toast.LENGTH_LONG
+            ).show();
+            return true;
+        });
+`;
+
+    } else if (type === "webview" || type === "url") {
+
+      declarations += `
+        WebView view${i} = new WebView(this);
+
+        view${i}.setLayoutParams(
+            new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                600
+            )
+        );
+
+        view${i}.getSettings().setJavaScriptEnabled(true);
+        view${i}.getSettings().setDomStorageEnabled(true);
+        view${i}.getSettings().setMediaPlaybackRequiresUserGesture(false);
+
+        view${i}.setWebViewClient(new WebViewClient());
+
+        root.addView(view${i});
+
+        view${i}.loadUrl("${java(value)}");
+`;
+
     }
-
-    if ((c.type === "url" || c.type === "webview") && value) {
-      return `
-        WebView web${i} = findViewById(R.id.${id});
-
-        web${i}.getSettings().setJavaScriptEnabled(true);
-        web${i}.getSettings().setDomStorageEnabled(true);
-        web${i}.setWebViewClient(new WebViewClient());
-
-        web${i}.loadUrl("${java(value)}");`;
-    }
-
-    return "";
-
-  }).join("\n");
+  });
 
   w(
     path.join(d, "settings.gradle"),
@@ -161,14 +164,13 @@ function generateAndroidProject(p, d) {
 
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
-
     repositories {
         google()
         mavenCentral()
     }
 }
 
-rootProject.name="${n}"
+rootProject.name = "${appName}"
 include(":app")
 `
   );
@@ -184,7 +186,8 @@ include(":app")
   w(
     path.join(d, "gradle.properties"),
 `org.gradle.daemon=false
-org.gradle.jvmargs=-Xmx256m -Dfile.encoding=UTF-8
+org.gradle.jvmargs=-Xmx256m -XX:MaxMetaspaceSize=128m -Dfile.encoding=UTF-8
+android.useAndroidX=true
 android.nonTransitiveRClass=true
 `
   );
@@ -218,7 +221,7 @@ android {
 
     <application
         android:theme="@style/AppTheme"
-        android:label="${xml(p.name || "Movixa App")}"
+        android:label="${appName}"
         android:usesCleartextTraffic="true">
 
         <activity
@@ -234,33 +237,8 @@ android {
 
     </application>
 
-</manifest>`
-  );
-
-  w(
-    path.join(d, "app/src/main/res/layout/activity_main.xml"),
-`<ScrollView
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
-
-    <LinearLayout
-        android:orientation="vertical"
-        android:padding="16dp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content">
-
-${views || `
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Built with Movixa App Maker"
-            android:textSize="18sp"
-            android:padding="12dp"/>`}
-
-    </LinearLayout>
-
-</ScrollView>`
+</manifest>
+`
   );
 
   w(
@@ -276,7 +254,8 @@ ${views || `
 
     </style>
 
-</resources>`
+</resources>
+`
   );
 
   w(
@@ -290,18 +269,14 @@ ${views || `
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Looper;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.VideoView;
-import android.widget.MediaController;
-import android.widget.Toast;
+import android.widget.*;
+import android.view.*;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.net.Uri;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
+import android.media.MediaPlayer;
 
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -311,55 +286,63 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
 
+    private LinearLayout root;
     private final ExecutorService executor =
-        Executors.newSingleThreadExecutor();
-
-    private final Handler handler =
-        new Handler(Looper.getMainLooper());
+        Executors.newCachedThreadPool();
 
     @Override
     protected void onCreate(Bundle b) {
-
         super.onCreate(b);
 
-        setContentView(R.layout.activity_main);
+        root = new LinearLayout(this);
+        root.setOrientation(LinearLayout.VERTICAL);
+        root.setPadding(16, 16, 16, 16);
 
-${actions}
+        ScrollView scroll = new ScrollView(this);
+        scroll.addView(root);
 
+        setContentView(scroll);
+
+${declarations}
     }
 
     private void loadImage(ImageView imageView, String url) {
 
-        executor.execute(() -> {
+        if (url == null || url.trim().isEmpty()) {
+            return;
+        }
 
-            HttpURLConnection connection = null;
-            InputStream input = null;
+        executor.execute(() -> {
 
             try {
 
                 URL imageUrl = new URL(url);
 
-                connection =
+                HttpURLConnection connection =
                     (HttpURLConnection) imageUrl.openConnection();
 
-                connection.setConnectTimeout(10000);
+                connection.setConnectTimeout(15000);
                 connection.setReadTimeout(15000);
                 connection.setDoInput(true);
                 connection.connect();
 
-                input = connection.getInputStream();
+                InputStream input =
+                    connection.getInputStream();
 
                 Bitmap bitmap =
                     BitmapFactory.decodeStream(input);
 
-                handler.post(() -> {
+                input.close();
+                connection.disconnect();
+
+                runOnUiThread(() -> {
 
                     if (bitmap != null) {
                         imageView.setImageBitmap(bitmap);
                     } else {
                         Toast.makeText(
-                            this,
-                            "Image load failed",
+                            MainActivity.this,
+                            "Image load नहीं हुई",
                             Toast.LENGTH_SHORT
                         ).show();
                     }
@@ -368,42 +351,25 @@ ${actions}
 
             } catch (Exception e) {
 
-                handler.post(() ->
+                runOnUiThread(() ->
                     Toast.makeText(
-                        this,
-                        "Image load failed",
+                        MainActivity.this,
+                        "Image load नहीं हुई",
                         Toast.LENGTH_SHORT
                     ).show()
                 );
-
-            } finally {
-
-                try {
-                    if (input != null) {
-                        input.close();
-                    }
-                } catch (Exception ignored) {}
-
-                if (connection != null) {
-                    connection.disconnect();
-                }
             }
-
         });
     }
 
     @Override
     protected void onDestroy() {
-
-        executor.shutdownNow();
-
         super.onDestroy();
+        executor.shutdownNow();
     }
 }
 `
   );
 }
 
-module.exports = {
-  generateAndroidProject
-};   
+module.exports = { generateAndroidProject };
