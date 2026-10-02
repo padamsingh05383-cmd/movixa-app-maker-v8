@@ -1,51 +1,56 @@
-const fs=require("fs"),path=require("path");
+const fs = require("fs");
+const path = require("path");
 
-function safe(s){
-  return String(s||"MovixaApp")
-    .replace(/[^a-zA-Z0-9]/g,"")
-    .replace(/^(\d)/,"App$1")||"MovixaApp"
+function safe(s) {
+  return String(s || "MovixaApp")
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .replace(/^(\d)/, "App$1") || "MovixaApp";
 }
 
-function xml(s){
-  return String(s??"")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
+function xml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-function w(f,c){
-  fs.mkdirSync(path.dirname(f),{recursive:true});
-  fs.writeFileSync(f,c)
+function w(f, c) {
+  fs.mkdirSync(path.dirname(f), { recursive: true });
+  fs.writeFileSync(f, c);
 }
 
-function generateAndroidProject(p,d){
+function generateAndroidProject(p, d) {
 
-  const n=safe(p.name);
-  const ns="com.movixa.generated."+n.toLowerCase();
-  const cs=Array.isArray(p.components)?p.components:[];
+  const n = safe(p.name);
+  const ns = "com.movixa.generated." + n.toLowerCase();
+  const cs = Array.isArray(p.components) ? p.components : [];
 
-  const views=cs.map((c,i)=>{
-    const id="movixa_"+i;
+  const views = cs.map((c, i) => {
+    const id = "movixa_" + i;
 
-    if(c.type==="button")
-      return `<Button android:id="@+id/${id}" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="${xml(c.text||"Button")}" />`;
+    if (c.type === "button") {
+      return `<Button android:id="@+id/${id}" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="${xml(c.text || "Button")}" />`;
+    }
 
-    if(c.type==="image")
+    if (c.type === "image") {
       return `<ImageView android:id="@+id/${id}" android:layout_width="match_parent" android:layout_height="180dp" android:contentDescription="Image" android:scaleType="centerCrop" />`;
+    }
 
-    if(c.type==="video")
+    if (c.type === "video") {
       return `<VideoView android:id="@+id/${id}" android:layout_width="match_parent" android:layout_height="220dp" />`;
+    }
 
-    if(c.type==="url"||c.type==="webview")
+    if (c.type === "url" || c.type === "webview") {
       return `<WebView android:id="@+id/${id}" android:layout_width="match_parent" android:layout_height="300dp" />`;
+    }
 
-    return `<TextView android:id="@+id/${id}" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="${xml(c.text||"Text")}" android:textSize="18sp" android:padding="12dp" />`;
+    return `<TextView android:id="@+id/${id}" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="${xml(c.text || "Text")}" android:textSize="18sp" android:padding="12dp" />`;
 
-  }).map(x=>"    "+x).join("\n");
+  }).map(x => "        " + x).join("\n");
 
   w(
-    path.join(d,"settings.gradle"),
+    path.join(d, "settings.gradle"),
 `pluginManagement {
     repositories {
         google()
@@ -68,7 +73,7 @@ include(":app")
   );
 
   w(
-    path.join(d,"build.gradle"),
+    path.join(d, "build.gradle"),
 `plugins {
     id 'com.android.application' version '8.7.3' apply false
 }
@@ -76,7 +81,7 @@ include(":app")
   );
 
   w(
-    path.join(d,"gradle.properties"),
+    path.join(d, "gradle.properties"),
 `android.useAndroidX=true
 android.nonTransitiveRClass=true
 org.gradle.daemon=false
@@ -85,7 +90,7 @@ org.gradle.jvmargs=-Xmx256m -XX:MaxMetaspaceSize=128m -Dfile.encoding=UTF-8
   );
 
   w(
-    path.join(d,"app/build.gradle"),
+    path.join(d, "app/build.gradle"),
 `plugins {
     id 'com.android.application'
 }
@@ -102,27 +107,18 @@ android {
         versionName '1.0'
     }
 }
-
-configurations.configureEach {
-    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'
-    exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8'
-}
-
-dependencies {
-    implementation 'androidx.appcompat:appcompat:1.7.0'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.8.22'
-}
 `
   );
 
   w(
-    path.join(d,"app/src/main/AndroidManifest.xml"),
+    path.join(d, "app/src/main/AndroidManifest.xml"),
 `<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application
         android:theme="@style/AppTheme"
-        android:label="${xml(p.name||"Movixa App")}">
+        android:label="${xml(p.name || "Movixa App")}">
 
         <activity
             android:name=".MainActivity"
@@ -136,11 +132,12 @@ dependencies {
         </activity>
 
     </application>
+
 </manifest>`
   );
 
   w(
-    path.join(d,"app/src/main/res/layout/activity_main.xml"),
+    path.join(d, "app/src/main/res/layout/activity_main.xml"),
 `<ScrollView
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -152,24 +149,25 @@ dependencies {
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        ${views||`<TextView
+${views || `        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Built with Movixa App Maker"/>`}
 
     </LinearLayout>
+
 </ScrollView>`
   );
 
   w(
-    path.join(d,"app/src/main/res/values/styles.xml"),
+    path.join(d, "app/src/main/res/values/styles.xml"),
 `<resources>
-    <style name="AppTheme" parent="Theme.AppCompat.Light.NoActionBar"/>
+    <style name="AppTheme" parent="android:style/Theme.Material.Light.NoActionBar"/>
 </resources>`
   );
 
   w(
-    path.join(d,"app/src/main/java",...ns.split("."),"MainActivity.java"),
+    path.join(d, "app/src/main/java", ...ns.split("."), "MainActivity.java"),
 `package ${ns};
 
 import android.app.Activity;
@@ -177,7 +175,8 @@ import android.os.Bundle;
 
 public class MainActivity extends Activity {
 
-    public void onCreate(Bundle b){
+    @Override
+    public void onCreate(Bundle b) {
         super.onCreate(b);
         setContentView(R.layout.activity_main);
     }
@@ -185,4 +184,4 @@ public class MainActivity extends Activity {
   );
 }
 
-module.exports={generateAndroidProject};
+module.exports = { generateAndroidProject };
