@@ -400,13 +400,11 @@ include(":app")
 `
   );
 
-  writeFile(
-    path.join(dir, "build.gradle"),
-`plugins {
-    id 'com.android.application'
-        version '8.7.3'
-        apply false
+  `plugins {
+    id 'com.android.application' version '8.7.3' apply false
 }
+`
+
 `
   );
 
