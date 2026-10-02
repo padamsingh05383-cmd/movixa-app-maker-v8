@@ -17,7 +17,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     npm \
     && rm -rf /var/lib/apt/lists/*
 
-# Android command-line tools
 RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
     curl -fsSL -o /tmp/cmdline-tools.zip \
     https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip && \
@@ -25,11 +24,9 @@ RUN mkdir -p ${ANDROID_HOME}/cmdline-tools && \
     mv /tmp/android-tools/cmdline-tools ${ANDROID_HOME}/cmdline-tools/latest && \
     rm -rf /tmp/cmdline-tools.zip /tmp/android-tools
 
-# Android SDK packages
 RUN yes | sdkmanager --licenses >/dev/null || true && \
     sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-# Gradle
 RUN curl -fsSL -o /tmp/gradle.zip \
     https://services.gradle.org/distributions/gradle-8.9-bin.zip && \
     unzip -q /tmp/gradle.zip -d /opt && \
