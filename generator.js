@@ -21,15 +21,13 @@ function writeFile(file, content) {
 }
 
 function generateAndroidProject(project, dir) {
-
   const appName = safe(project.name);
   const namespace =
     "com.movixa.generated." + appName.toLowerCase();
 
-  const components =
-    Array.isArray(project.components)
-      ? project.components
-      : [];
+  const components = Array.isArray(project.components)
+    ? project.components
+    : [];
 
   let code = "";
 
@@ -49,7 +47,6 @@ function generateAndroidProject(project, dir) {
   });
 
   components.forEach((c, i) => {
-
     const type = String(c.type || "").toLowerCase();
 
     const value = String(
@@ -65,7 +62,6 @@ function generateAndroidProject(project, dir) {
         TextView view${i} = new TextView(this);
 
         view${i}.setText("${java(value || "Text")}");
-
         view${i}.setTextSize(18);
 
         view${i}.setPadding(
@@ -92,12 +88,10 @@ function generateAndroidProject(project, dir) {
 
         clickCode = `
             try {
-
-                Intent intent =
-                    new Intent(
-                        Intent.ACTION_VIEW,
-                        Uri.parse("${java(actionValue)}")
-                    );
+                Intent intent = new Intent(
+                    Intent.ACTION_VIEW,
+                    Uri.parse("${java(actionValue)}")
+                );
 
                 startActivity(intent);
 
@@ -108,7 +102,6 @@ function generateAndroidProject(project, dir) {
                     "URL open नहीं हो पाया",
                     Toast.LENGTH_SHORT
                 ).show();
-
             }
 `;
 
@@ -117,10 +110,7 @@ function generateAndroidProject(project, dir) {
         if (hasWebView) {
 
           clickCode = `
-            if (
-                firstWebView != null &&
-                !"${java(actionValue)}".trim().isEmpty()
-            ) {
+            if (firstWebView != null) {
 
                 firstWebView.loadUrl(
                     "${java(actionValue)}"
@@ -130,10 +120,9 @@ function generateAndroidProject(project, dir) {
 
                 Toast.makeText(
                     MainActivity.this,
-                    "WebView या URL नहीं मिला",
+                    "WebView नहीं मिला",
                     Toast.LENGTH_SHORT
                 ).show();
-
             }
 `;
 
@@ -146,7 +135,6 @@ function generateAndroidProject(project, dir) {
                 Toast.LENGTH_SHORT
             ).show();
 `;
-
         }
 
       } else if (action === "video") {
@@ -163,7 +151,6 @@ function generateAndroidProject(project, dir) {
                 );
 
                 firstVideoView.start();
-
             }
 `;
 
@@ -181,10 +168,8 @@ function generateAndroidProject(project, dir) {
                     "Video नहीं मिला",
                     Toast.LENGTH_SHORT
                 ).show();
-
             }
 `;
-
           }
 
         } else {
@@ -196,7 +181,6 @@ function generateAndroidProject(project, dir) {
                 Toast.LENGTH_SHORT
             ).show();
 `;
-
         }
 
       } else {
@@ -206,12 +190,11 @@ function generateAndroidProject(project, dir) {
                 MainActivity.this,
                 "${java(
                   actionValue ||
-                  (value || "Button") + " clicked"
+                  ((value || "Button") + " clicked")
                 )}",
                 Toast.LENGTH_SHORT
             ).show();
 `;
-
       }
 
       code += `
@@ -224,9 +207,7 @@ function generateAndroidProject(project, dir) {
         root.addView(view${i});
 
         view${i}.setOnClickListener(v -> {
-
 ${clickCode}
-
         });
 `;
 
@@ -311,7 +292,6 @@ ${clickCode}
                 view${i}.requestFocus();
 
                 view${i}.start();
-
             }
         );
 
@@ -368,9 +348,7 @@ ${clickCode}
             "${java(value)}"
         );
 `;
-
     }
-
   });
 
   writeFile(
@@ -383,39 +361,30 @@ ${clickCode}
     }
 }
 
-dependencyResolutionManagement {
-    repositoriesMode.set(
-        RepositoriesMode.FAIL_ON_PROJECT_REPOS
-    )
-
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
 rootProject.name = "${appName}"
 
 include(":app")
 `
   );
 
-  `plugins {
+  /*
+   * IMPORTANT:
+   * Keep the Android Gradle Plugin version
+   * on the SAME plugins line.
+   */
+  writeFile(
+    path.join(dir, "build.gradle"),
+`plugins {
     id 'com.android.application' version '8.7.3' apply false
 }
-`
-
 `
   );
 
   writeFile(
     path.join(dir, "gradle.properties"),
 `org.gradle.daemon=false
-
 org.gradle.jvmargs=-Xmx256m -XX:MaxMetaspaceSize=128m -Dfile.encoding=UTF-8
-
 android.useAndroidX=true
-
 android.nonTransitiveRClass=true
 `
   );
@@ -427,21 +396,14 @@ android.nonTransitiveRClass=true
 }
 
 android {
-
     namespace '${namespace}'
-
     compileSdk 35
 
     defaultConfig {
-
         applicationId '${namespace}'
-
         minSdk 23
-
         targetSdk 35
-
         versionCode 1
-
         versionName '1.0'
     }
 }
@@ -533,7 +495,6 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import android.net.Uri;
-
 import android.content.Intent;
 
 import java.io.InputStream;
@@ -544,8 +505,7 @@ import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity
-    extends Activity {
+public class MainActivity extends Activity {
 
     private LinearLayout root;
 
@@ -647,25 +607,19 @@ ${code}
                             "Image load नहीं हुई",
                             Toast.LENGTH_SHORT
                         ).show();
-
                     }
-
                 });
 
             } catch (Exception e) {
 
                 runOnUiThread(() ->
-
                     Toast.makeText(
                         MainActivity.this,
                         "Image load नहीं हुई",
                         Toast.LENGTH_SHORT
                     ).show()
-
                 );
-
             }
-
         });
     }
 
