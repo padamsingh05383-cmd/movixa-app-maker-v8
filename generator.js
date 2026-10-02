@@ -21,13 +21,17 @@ function writeFile(file, content) {
 }
 
 function generateAndroidProject(project, dir) {
-  const appName = safe(project.name);
-  const namespace =
-    "com.movixa.generated." + appName.toLowerCase();
 
-  const components = Array.isArray(project.components)
-    ? project.components
-    : [];
+  const appName = safe(project.name);
+
+  const namespace =
+    "com.movixa.generated." +
+    appName.toLowerCase();
+
+  const components =
+    Array.isArray(project.components)
+      ? project.components
+      : [];
 
   let code = "";
 
@@ -35,19 +39,27 @@ function generateAndroidProject(project, dir) {
   let hasWebView = false;
 
   components.forEach((c) => {
-    const type = String(c.type || "").toLowerCase();
+
+    const type =
+      String(c.type || "").toLowerCase();
 
     if (type === "video") {
       hasVideo = true;
     }
 
-    if (type === "webview" || type === "url") {
+    if (
+      type === "webview" ||
+      type === "url"
+    ) {
       hasWebView = true;
     }
+
   });
 
   components.forEach((c, i) => {
-    const type = String(c.type || "").toLowerCase();
+
+    const type =
+      String(c.type || "").toLowerCase();
 
     const value = String(
       c.text ??
@@ -56,12 +68,20 @@ function generateAndroidProject(project, dir) {
       ""
     );
 
+    /* =========================
+       TEXT
+    ========================= */
+
     if (type === "text") {
 
       code += `
-        TextView view${i} = new TextView(this);
+        TextView view${i} =
+            new TextView(this);
 
-        view${i}.setText("${java(value || "Text")}");
+        view${i}.setText(
+            "${java(value || "Text")}"
+        );
+
         view${i}.setTextSize(18);
 
         view${i}.setPadding(
@@ -74,24 +94,40 @@ function generateAndroidProject(project, dir) {
         root.addView(view${i});
 `;
 
-    } else if (type === "button") {
+    }
+
+    /* =========================
+       BUTTON
+    ========================= */
+
+    else if (type === "button") {
 
       const action =
-        String(c.action || "toast").toLowerCase();
+        String(
+          c.action || "toast"
+        ).toLowerCase();
 
       const actionValue =
-        String(c.actionValue || "");
+        String(
+          c.actionValue || ""
+        );
 
       let clickCode = "";
+
+      /* ---------- URL ---------- */
 
       if (action === "url") {
 
         clickCode = `
             try {
-                Intent intent = new Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("${java(actionValue)}")
-                );
+
+                Intent intent =
+                    new Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse(
+                            "${java(actionValue)}"
+                        )
+                    );
 
                 startActivity(intent);
 
@@ -102,15 +138,25 @@ function generateAndroidProject(project, dir) {
                     "URL open नहीं हो पाया",
                     Toast.LENGTH_SHORT
                 ).show();
+
             }
 `;
 
-      } else if (action === "webview") {
+      }
+
+      /* ---------- WEBVIEW ---------- */
+
+      else if (action === "webview") {
 
         if (hasWebView) {
 
           clickCode = `
-            if (firstWebView != null) {
+            if (
+                firstWebView != null &&
+                !"${java(actionValue)}"
+                    .trim()
+                    .isEmpty()
+            ) {
 
                 firstWebView.loadUrl(
                     "${java(actionValue)}"
@@ -120,9 +166,10 @@ function generateAndroidProject(project, dir) {
 
                 Toast.makeText(
                     MainActivity.this,
-                    "WebView नहीं मिला",
+                    "WebView या URL नहीं मिला",
                     Toast.LENGTH_SHORT
                 ).show();
+
             }
 `;
 
@@ -135,9 +182,14 @@ function generateAndroidProject(project, dir) {
                 Toast.LENGTH_SHORT
             ).show();
 `;
+
         }
 
-      } else if (action === "video") {
+      }
+
+      /* ---------- VIDEO ---------- */
+
+      else if (action === "video") {
 
         if (hasVideo) {
 
@@ -147,10 +199,13 @@ function generateAndroidProject(project, dir) {
             if (firstVideoView != null) {
 
                 firstVideoView.setVideoURI(
-                    Uri.parse("${java(actionValue)}")
+                    Uri.parse(
+                        "${java(actionValue)}"
+                    )
                 );
 
                 firstVideoView.start();
+
             }
 `;
 
@@ -168,8 +223,10 @@ function generateAndroidProject(project, dir) {
                     "Video नहीं मिला",
                     Toast.LENGTH_SHORT
                 ).show();
+
             }
 `;
+
           }
 
         } else {
@@ -181,24 +238,32 @@ function generateAndroidProject(project, dir) {
                 Toast.LENGTH_SHORT
             ).show();
 `;
+
         }
 
-      } else {
+      }
+
+      /* ---------- TOAST ---------- */
+
+      else {
 
         clickCode = `
             Toast.makeText(
                 MainActivity.this,
                 "${java(
                   actionValue ||
-                  ((value || "Button") + " clicked")
+                  ((value || "Button") +
+                    " clicked")
                 )}",
                 Toast.LENGTH_SHORT
             ).show();
 `;
+
       }
 
       code += `
-        Button view${i} = new Button(this);
+        Button view${i} =
+            new Button(this);
 
         view${i}.setText(
             "${java(value || "Button")}"
@@ -207,11 +272,19 @@ function generateAndroidProject(project, dir) {
         root.addView(view${i});
 
         view${i}.setOnClickListener(v -> {
+
 ${clickCode}
+
         });
 `;
 
-    } else if (type === "image") {
+    }
+
+    /* =========================
+       IMAGE
+    ========================= */
+
+    else if (type === "image") {
 
       code += `
         ImageView view${i} =
@@ -236,7 +309,13 @@ ${clickCode}
         );
 `;
 
-    } else if (type === "video") {
+    }
+
+    /* =========================
+       VIDEO
+    ========================= */
+
+    else if (type === "video") {
 
       code += `
         VideoView view${i} =
@@ -278,7 +357,9 @@ ${clickCode}
         );
 
         Uri videoUri${i} =
-            Uri.parse("${java(value)}");
+            Uri.parse(
+                "${java(value)}"
+            );
 
         view${i}.setVideoURI(
             videoUri${i}
@@ -292,6 +373,7 @@ ${clickCode}
                 view${i}.requestFocus();
 
                 view${i}.start();
+
             }
         );
 
@@ -309,7 +391,13 @@ ${clickCode}
         );
 `;
 
-    } else if (
+    }
+
+    /* =========================
+       WEBVIEW
+    ========================= */
+
+    else if (
       type === "webview" ||
       type === "url"
     ) {
@@ -332,7 +420,9 @@ ${clickCode}
             .setDomStorageEnabled(true);
 
         view${i}.getSettings()
-            .setMediaPlaybackRequiresUserGesture(false);
+            .setMediaPlaybackRequiresUserGesture(
+                false
+            );
 
         view${i}.setWebViewClient(
             new WebViewClient()
@@ -348,16 +438,33 @@ ${clickCode}
             "${java(value)}"
         );
 `;
+
     }
+
   });
 
+
+  /* =========================
+     SETTINGS.GRADLE
+     ========================= */
+
   writeFile(
-    path.join(dir, "settings.gradle"),
+    path.join(
+      dir,
+      "settings.gradle"
+    ),
 `pluginManagement {
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
+    }
+}
+
+dependencyResolutionManagement {
+    repositories {
+        google()
+        mavenCentral()
     }
 }
 
@@ -367,48 +474,82 @@ include(":app")
 `
   );
 
-  /*
-   * IMPORTANT:
-   * Keep the Android Gradle Plugin version
-   * on the SAME plugins line.
-   */
+
+  /* =========================
+     ROOT BUILD.GRADLE
+     ========================= */
+
   writeFile(
-    path.join(dir, "build.gradle"),
+    path.join(
+      dir,
+      "build.gradle"
+    ),
 `plugins {
     id 'com.android.application' version '8.7.3' apply false
 }
 `
   );
 
+
+  /* =========================
+     GRADLE.PROPERTIES
+     ========================= */
+
   writeFile(
-    path.join(dir, "gradle.properties"),
+    path.join(
+      dir,
+      "gradle.properties"
+    ),
 `org.gradle.daemon=false
+
 org.gradle.jvmargs=-Xmx256m -XX:MaxMetaspaceSize=128m -Dfile.encoding=UTF-8
+
 android.useAndroidX=true
+
 android.nonTransitiveRClass=true
 `
   );
 
+
+  /* =========================
+     APP BUILD.GRADLE
+     ========================= */
+
   writeFile(
-    path.join(dir, "app/build.gradle"),
+    path.join(
+      dir,
+      "app/build.gradle"
+    ),
 `plugins {
     id 'com.android.application'
 }
 
 android {
+
     namespace '${namespace}'
+
     compileSdk 35
 
     defaultConfig {
+
         applicationId '${namespace}'
+
         minSdk 23
+
         targetSdk 35
+
         versionCode 1
+
         versionName '1.0'
     }
 }
 `
   );
+
+
+  /* =========================
+     ANDROID MANIFEST
+     ========================= */
 
   writeFile(
     path.join(
@@ -448,6 +589,11 @@ android {
 `
   );
 
+
+  /* =========================
+     STYLES
+     ========================= */
+
   writeFile(
     path.join(
       dir,
@@ -472,6 +618,11 @@ android {
 </resources>
 `
   );
+
+
+  /* =========================
+     MAIN ACTIVITY
+     ========================= */
 
   writeFile(
     path.join(
@@ -505,7 +656,10 @@ import java.net.URL;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-public class MainActivity extends Activity {
+
+public class MainActivity
+    extends Activity {
+
 
     private LinearLayout root;
 
@@ -513,20 +667,25 @@ public class MainActivity extends Activity {
 
     private WebView firstWebView;
 
+
     private final ExecutorService executor =
         Executors.newCachedThreadPool();
+
 
     @Override
     protected void onCreate(Bundle b) {
 
         super.onCreate(b);
 
+
         root =
             new LinearLayout(this);
+
 
         root.setOrientation(
             LinearLayout.VERTICAL
         );
+
 
         root.setPadding(
             16,
@@ -535,15 +694,25 @@ public class MainActivity extends Activity {
             16
         );
 
+
         ScrollView scroll =
             new ScrollView(this);
 
+
         scroll.addView(root);
+
 
         setContentView(scroll);
 
+
 ${code}
+
     }
+
+
+    /* =========================
+       IMAGE LOADER
+    ========================= */
 
     private void loadImage(
         ImageView imageView,
@@ -554,8 +723,10 @@ ${code}
             url == null ||
             url.trim().isEmpty()
         ) {
+
             return;
         }
+
 
         executor.execute(() -> {
 
@@ -564,33 +735,43 @@ ${code}
                 URL imageUrl =
                     new URL(url);
 
+
                 HttpURLConnection connection =
                     (HttpURLConnection)
                     imageUrl.openConnection();
+
 
                 connection.setConnectTimeout(
                     15000
                 );
 
+
                 connection.setReadTimeout(
                     15000
                 );
 
+
                 connection.setDoInput(true);
+
 
                 connection.connect();
 
+
                 InputStream input =
                     connection.getInputStream();
+
 
                 Bitmap bitmap =
                     BitmapFactory.decodeStream(
                         input
                     );
 
+
                 input.close();
 
+
                 connection.disconnect();
+
 
                 runOnUiThread(() -> {
 
@@ -607,21 +788,31 @@ ${code}
                             "Image load नहीं हुई",
                             Toast.LENGTH_SHORT
                         ).show();
+
                     }
+
                 });
+
 
             } catch (Exception e) {
 
+
                 runOnUiThread(() ->
+
                     Toast.makeText(
                         MainActivity.this,
                         "Image load नहीं हुई",
                         Toast.LENGTH_SHORT
                     ).show()
+
                 );
+
             }
+
         });
+
     }
+
 
     @Override
     protected void onDestroy() {
@@ -629,11 +820,15 @@ ${code}
         super.onDestroy();
 
         executor.shutdownNow();
+
     }
+
 }
 `
   );
+
 }
+
 
 module.exports = {
   generateAndroidProject
