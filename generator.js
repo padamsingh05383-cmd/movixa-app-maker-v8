@@ -21,6 +21,7 @@ function writeFile(file, content) {
 }
 
 function generateAndroidProject(project, dir) {
+
   const appName = safe(project.name);
 
   const namespace =
@@ -38,6 +39,7 @@ function generateAndroidProject(project, dir) {
   let hasWebView = false;
 
   components.forEach((c) => {
+
     const type =
       String(c.type || "").toLowerCase();
 
@@ -54,6 +56,7 @@ function generateAndroidProject(project, dir) {
   });
 
   components.forEach((c, i) => {
+
     const type =
       String(c.type || "").toLowerCase();
 
@@ -64,12 +67,20 @@ function generateAndroidProject(project, dir) {
       ""
     );
 
+    /* =========================
+       TEXT
+    ========================== */
+
     if (type === "text") {
 
       code += `
-        TextView view${i} = new TextView(this);
+        TextView view${i} =
+            new TextView(this);
 
-        view${i}.setText("${java(value || "Text")}");
+        view${i}.setText(
+            "${java(value || "Text")}"
+        );
+
         view${i}.setTextSize(18);
 
         view${i}.setPadding(
@@ -82,6 +93,10 @@ function generateAndroidProject(project, dir) {
         root.addView(view${i});
 `;
 
+    /* =========================
+       BUTTON
+    ========================== */
+
     } else if (type === "button") {
 
       const action =
@@ -93,6 +108,8 @@ function generateAndroidProject(project, dir) {
 
       let clickCode = "";
 
+      /* OPEN URL */
+
       if (action === "url") {
 
         clickCode = `
@@ -101,7 +118,9 @@ function generateAndroidProject(project, dir) {
                 Intent intent =
                     new Intent(
                         Intent.ACTION_VIEW,
-                        Uri.parse("${java(actionValue)}")
+                        Uri.parse(
+                            "${java(actionValue)}"
+                        )
                     );
 
                 startActivity(intent);
@@ -115,6 +134,8 @@ function generateAndroidProject(project, dir) {
                 ).show();
             }
 `;
+
+      /* OPEN WEBVIEW */
 
       } else if (action === "webview") {
 
@@ -148,6 +169,8 @@ function generateAndroidProject(project, dir) {
 `;
         }
 
+      /* PLAY VIDEO */
+
       } else if (action === "video") {
 
         if (hasVideo) {
@@ -158,7 +181,9 @@ function generateAndroidProject(project, dir) {
             if (firstVideoView != null) {
 
                 firstVideoView.setVideoURI(
-                    Uri.parse("${java(actionValue)}")
+                    Uri.parse(
+                        "${java(actionValue)}"
+                    )
                 );
 
                 firstVideoView.start();
@@ -202,6 +227,8 @@ function generateAndroidProject(project, dir) {
 `;
         }
 
+      /* TOAST */
+
       } else {
 
         clickCode = `
@@ -231,6 +258,10 @@ ${clickCode}
         });
 `;
 
+    /* =========================
+       IMAGE
+    ========================== */
+
     } else if (type === "image") {
 
       code += `
@@ -255,6 +286,10 @@ ${clickCode}
             "${java(value)}"
         );
 `;
+
+    /* =========================
+       VIDEO
+    ========================== */
 
     } else if (type === "video") {
 
@@ -298,7 +333,9 @@ ${clickCode}
         );
 
         Uri videoUri${i} =
-            Uri.parse("${java(value)}");
+            Uri.parse(
+                "${java(value)}"
+            );
 
         view${i}.setVideoURI(
             videoUri${i}
@@ -328,6 +365,10 @@ ${clickCode}
             }
         );
 `;
+
+    /* =========================
+       WEBVIEW
+    ========================== */
 
     } else if (
       type === "webview" ||
@@ -371,6 +412,10 @@ ${clickCode}
     }
   });
 
+  /* =========================
+     SETTINGS.GRADLE
+  ========================== */
+
   writeFile(
     path.join(dir, "settings.gradle"),
 `pluginManagement {
@@ -387,13 +432,28 @@ include(":app")
 `
   );
 
+  /* =========================
+     ROOT BUILD.GRADLE
+  ========================== */
+
   writeFile(
     path.join(dir, "build.gradle"),
 `plugins {
     id 'com.android.application' version '8.7.3' apply false
 }
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
 `
   );
+
+  /* =========================
+     GRADLE.PROPERTIES
+  ========================== */
 
   writeFile(
     path.join(dir, "gradle.properties"),
@@ -407,10 +467,19 @@ android.nonTransitiveRClass=true
 `
   );
 
+  /* =========================
+     APP BUILD.GRADLE
+  ========================== */
+
   writeFile(
     path.join(dir, "app/build.gradle"),
 `plugins {
     id 'com.android.application'
+}
+
+repositories {
+    google()
+    mavenCentral()
 }
 
 android {
@@ -427,6 +496,10 @@ android {
 }
 `
   );
+
+  /* =========================
+     ANDROID MANIFEST
+  ========================== */
 
   writeFile(
     path.join(
@@ -466,6 +539,10 @@ android {
 `
   );
 
+  /* =========================
+     STYLES
+  ========================== */
+
   writeFile(
     path.join(
       dir,
@@ -490,6 +567,10 @@ android {
 </resources>
 `
   );
+
+  /* =========================
+     MAIN ACTIVITY
+  ========================== */
 
   writeFile(
     path.join(
@@ -562,6 +643,10 @@ public class MainActivity extends Activity {
 
 ${code}
     }
+
+    /* =========================
+       IMAGE LOADER
+    ========================== */
 
     private void loadImage(
         ImageView imageView,
@@ -640,6 +725,10 @@ ${code}
             }
         });
     }
+
+    /* =========================
+       DESTROY
+    ========================== */
 
     @Override
     protected void onDestroy() {
