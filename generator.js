@@ -453,12 +453,13 @@ allprojects {
 
   /* =========================
      GRADLE.PROPERTIES
+     MEMORY FIX
   ========================== */
 
   writeFile(
     path.join(dir, "gradle.properties"),
 `org.gradle.daemon=false
-org.gradle.jvmargs=-Xmx256m -XX:MaxMetaspaceSize=128m -Dfile.encoding=UTF-8
+org.gradle.jvmargs=-Xmx256m -XX:MaxMetaspaceSize=256m -Dfile.encoding=UTF-8
 org.gradle.workers.max=1
 org.gradle.parallel=false
 org.gradle.caching=false
